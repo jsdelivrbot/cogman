@@ -20,87 +20,121 @@
 
 module.exports = function(controller) {
 
+
     // listen for someone saying 'tasks' to the bot
     // reply with a list of current tasks loaded from the storage system
     // based on this user's id
     controller.hears('mutees', 'direct_message,direct_mention,mention', function(bot, message) {
-        controller.storage.users.get(message.user, function(err, user) {
-            // user object can contain arbitary keys. we will store tasks in .tasks
-            if (!user || !user.tasks || user.tasks.length == 0) {
-                bot.reply(message, 'There are no tasks on your list. Say `add _task_` to add something.');
+        let returnMessage = '';
+
+        controller.storage.teams.get(bot.team_info.id, function (err, team) {
+            if (err) {
+                debug('Error: could not load team from storage system:', payload.identity.team_id, err);
             } else {
+                if (!team || !team.mutees || team.mutees.length == 0) {
+                    returnMessage = 'No-one on your team is muted';
+                } else {
+                    var mutees = team.mutees.map(mutee => `<@${mutee}>`).join(', ');
 
-                var text = 'Here are your current tasks: \n' +
-                    generateTaskList(user) +
-                    'Reply with `done _number_` to mark a task completed.';
-
-                bot.reply(message, text);
-
+                    returnMessage = 'Team mutees: ' + mutees;
+                }
             }
         });
-    });
 
-    controller.hears(['mute (.*)'], 'direct_message,direct_mention,mention', function(bot, message) {
-        var newtask = message.match[1];
-
-        controller.storage.users.get(message.user, function(err, user) {
-
-            if (!user) {
-                user = {};
-                user.id = message.user;
-                user.tasks = [];
-            }
-
-            user.tasks.push(newtask);
-
-            controller.storage.users.save(user, function(err,saved) {
-
-                if (err) {
-                    bot.reply(message, 'I experienced an error adding your task: ' + err);
-                } else {
-                    bot.api.reactions.add({
-                        name: 'thumbsup',
-                        channel: message.channel,
-                        timestamp: message.ts
-                    });
-                }
-
-            });
-        });
-
-    });
-
-    controller.hears(['unmute (.*)'], 'direct_message,direct_mention,mention', function(bot, message) {
-        var number = message.match[1];
-
-        if (isNaN(number)) {
-            bot.reply(message, 'Please specify a number.');
-        } else {
-
-            // adjust for 0-based array index
-            number = parseInt(number) - 1;
-
-            controller.storage.users.get(message.user, function(err, user) {
-
-                if (!user) {
-                    user = {};
-                    user.id = message.user;
-                    user.tasks = [];
-                }
-
-                if (number < 0 || number >= user.tasks.length) {
-                    bot.reply(message, 'Sorry, your input is out of range. Right now there are ' + user.tasks.length + ' items on your list.');
-                } else {
-
-                    var item = user.tasks.splice(number,1);
-
-                    // reply with a strikethrough message...
-                    bot.reply(message, '~' + item + '~');
-
-                    bot.reply(message, 'Your list is now empty!');
-                }
+        if (returnMessage) {
+            bot.sendEphemeral({
+                channel: message.channel,
+                user: message.user,
+                text: returnMessage
             });
         }
+    });
 
+    controller.hears(['^mute (.*)'], 'direct_message,direct_mention,mention', function(bot, message) {
+        let returnMessage = '';
+
+        var userToMute = message.match[1];
+
+        userToMute = userToMute.replace(/^\<\@/, '').replace(/\>$/, '');
+
+        controller.storage.teams.get(bot.team_info.id, function (err, team) {
+            if (err) {
+                debug('Error: could not load team from storage system:', payload.identity.team_id, err);
+            } else {
+                if (team) {
+                    if (!team.mutees) {
+                        team.mutees = [];
+                    }
+
+                    var userToUnmuteIndex = team.mutees.indexOf(userToMute);
+
+                    if (userToUnmuteIndex !== -1) {
+                        returnMessage = '<@' + userToMute + '>' + ' is already muted';
+                    } else {
+                        team.mutees.push(userToMute);
+
+                        controller.storage.teams.save(team, function(err, saved) {
+                            if (err) {
+                                returnMessage = 'I experienced an error muting the user: ' + err;
+                            } else {
+                                returnMessage = '<@' + userToMute + '>' + ' has been muted';
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        if (returnMessage) {
+            bot.sendEphemeral({
+                channel: message.channel,
+                user: message.user,
+                text: returnMessage
+            });
+        }
+    });
+
+    controller.hears(['^unmute (.*)'], 'direct_message,direct_mention,mention', function(bot, message) {
+        let returnMessage = '';
+
+        var userToUnmute = message.match[1];
+
+        userToUnmute = userToUnmute.replace(/^\<\@/, '').replace(/\>$/, '');
+
+        controller.storage.teams.get(bot.team_info.id, function (err, team) {
+            if (err) {
+                debug('Error: could not load team from storage system:', payload.identity.team_id, err);
+            } else {
+                if (team) {
+                    if (!team.mutees) {
+                        team.mutees = [];
+                    }
+
+                    var userToUnmuteIndex = team.mutees.indexOf(userToUnmute);
+
+                    if (userToUnmuteIndex !== -1) {
+                        team.mutees.splice(userToUnmuteIndex, 1)
+
+                        controller.storage.teams.save(team, function(err, saved) {
+                            if (err) {
+                                returnMessage = 'I experienced an error unmuting the user: ' + err;
+                            } else {
+                                returnMessage = '<@' + userToUnmute + '>' + ' has been unmuted';
+                            }
+                        });
+                    } else {
+                        returnMessage = '<@' + userToUnmute + '>' + ' is not in the mutees list';
+                    }
+                }
+            }
+        });
+
+        if (returnMessage) {
+            bot.sendEphemeral({
+                channel: message.channel,
+                user: message.user,
+                text: returnMessage
+            });
+        }
     });
 }

@@ -10,6 +10,30 @@ module.exports = function(controller) {
     });
 
     controller.hears(['(.*)'], ['ambient,direct_mention,direct_message'], function(bot, message) {
+        // controller.storage.teams.get(bot.team_info.id, function (err, team) {
+        //     if (err) {
+        //         debug('Error: could not load team from storage system:', payload.identity.team_id, err);
+        //     } else {
+        //         if (team && team.mutees.length) {
+        //             var userToUnmuteIndex = team.mutees.indexOf(message.user);
+
+        //             if (userToUnmuteIndex !== -1) {
+        //                 team.mutees.splice(userToUnmuteIndex, 1)
+
+        //                 controller.storage.teams.save(team, function(err, saved) {
+        //                     if (err) {
+        //                         bot.reply(message, 'I experienced an error unmuting the user: ' + err);
+        //                     } else {
+        //                         bot.reply(message, '<@' + message.user + '>' + ' has been unmuted');
+        //                     }
+        //                 });
+        //             } else {
+        //                 bot.reply(message,'<@' + message.user + '>' + ' is not in the mutees list');
+        //             }
+        //         }
+        //     }
+        // });
+
         if (wordfilter.blacklisted(message.text)) {
             bot.api.chat.delete({
                 token: bot.config.bot.app_token,
