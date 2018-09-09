@@ -130,8 +130,7 @@ if (!process.env.clientId || !process.env.clientSecret) {
   require('botkit-studio-metrics')(controller);
 
   // Load skills
-  require("./skills/cogman_help.js")(controller);
-  require("./skills/sample_hears.js")(controller);
+  require("./skills/cogman_warn.js")(controller);
   require("./skills/cogman_mute.js")(controller);
   require("./skills/cogman_listen.js")(controller);
 
