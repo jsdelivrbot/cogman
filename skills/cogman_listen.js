@@ -24,10 +24,6 @@ module.exports = function(controller) {
         bot.reply(message, 'Never fear, Cogman is here!');
     });
 
-    controller.on('user_channel_join,user_group_join', function(bot, message) {
-        bot.reply(message, 'Welcome, <@' + message.user + '>');
-    });
-
     controller.hears(['(.*)'], ['ambient,direct_mention,direct_message'], function(bot, message) {
         controller.storage.teams.get(bot.team_info.id, function (err, team) {
             if (team && team.mutees.length != 0) {
