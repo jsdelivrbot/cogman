@@ -142,7 +142,6 @@ if (!process.env.clientId || !process.env.clientSecret) {
   // controller.studio.before, controller.studio.after and controller.studio.validate
   if (!process.env.studio_token) {
       console.log('~~~~~~~~~~');
-      console.log('NOTE: This bot does not use Botkit Studio functionality');
   }
 }
 
